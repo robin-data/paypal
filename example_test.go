@@ -1,6 +1,10 @@
 package paypal_test
 
-import "github.com/plutov/paypal/v3"
+import (
+	"context"
+
+	"github.com/plutov/paypal/v4"
+)
 
 func Example() {
 	// Initialize client
@@ -10,13 +14,13 @@ func Example() {
 	}
 
 	// Retrieve access token
-	_, err = c.GetAccessToken()
+	_, err = c.GetAccessToken(context.Background())
 	if err != nil {
 		panic(err)
 	}
 }
 
-func ExampleClient_CreateSinglePayout_Venmo() {
+func ExampleClient_CreatePayout_Venmo() {
 	// Initialize client
 	c, err := paypal.NewClient("clientID", "secretID", paypal.APIBaseSandBox)
 	if err != nil {
@@ -24,11 +28,11 @@ func ExampleClient_CreateSinglePayout_Venmo() {
 	}
 
 	// Retrieve access token
-	_, err = c.GetAccessToken()
+	_, err = c.GetAccessToken(context.Background())
 	if err != nil {
 		panic(err)
 	}
-	
+
 	// Set payout item with Venmo wallet
 	payout := paypal.Payout{
 		SenderBatchHeader: &paypal.SenderBatchHeader{
@@ -38,9 +42,9 @@ func ExampleClient_CreateSinglePayout_Venmo() {
 		},
 		Items: []paypal.PayoutItem{
 			{
-				RecipientType: "EMAIL",
+				RecipientType:   "EMAIL",
 				RecipientWallet: paypal.VenmoRecipientWallet,
-				Receiver:      "receiver@example.com",
+				Receiver:        "receiver@example.com",
 				Amount: &paypal.AmountPayout{
 					Value:    "9.87",
 					Currency: "USD",
@@ -51,5 +55,5 @@ func ExampleClient_CreateSinglePayout_Venmo() {
 		},
 	}
 
-	c.CreateSinglePayout(payout)
+	c.CreatePayout(context.Background(), payout)
 }
