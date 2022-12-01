@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -89,16 +90,18 @@ func (c *Client) VerifyWebhookSignature(ctx context.Context, httpReq *http.Reque
 		TransmissionSig  string          `json:"transmission_sig,omitempty"`
 		TransmissionTime string          `json:"transmission_time,omitempty"`
 		WebhookID        string          `json:"webhook_id,omitempty"`
-		Event            json.RawMessage `json:"webhook_event"`
+		Event            json.RawMessage `json:"webhook_event,omitempty"`
 	}
 
 	// Read the content
 	var bodyBytes []byte
 	if httpReq.Body != nil {
-		bodyBytes, _ = ioutil.ReadAll(httpReq.Body)
+		bodyBytes, _ = io.ReadAll(httpReq.Body)
+	} else {
+		return nil, errors.New("Cannot verify webhook for HTTP Request with empty body.")
 	}
 	// Restore the io.ReadCloser to its original state
-	httpReq.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	httpReq.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	verifyRequest := verifyWebhookSignatureRequest{
 		AuthAlgo:         httpReq.Header.Get("PAYPAL-AUTH-ALGO"),
@@ -124,7 +127,7 @@ func (c *Client) VerifyWebhookSignature(ctx context.Context, httpReq *http.Reque
 	return response, nil
 }
 
-// GetWebhooksEventTypes - Lists all webhook event types.
+// GetWebhookEventTypes - Lists all webhook event types.
 // Endpoint: GET /v1/notifications/webhooks-event-types
 func (c *Client) GetWebhookEventTypes(ctx context.Context) (*WebhookEventTypesResponse, error) {
 	req, err := c.NewRequest(ctx, http.MethodGet, fmt.Sprintf("%s%s", c.APIBase, "/v1/notifications/webhooks-event-types"), nil)

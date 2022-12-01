@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -78,7 +77,7 @@ func (c *Client) SetReturnRepresentation() {
 }
 
 // Send makes a request to the API, the response body will be
-// unmarshaled into v, or if v is an io.Writer, the response will
+// unmarshalled into v, or if v is an io.Writer, the response will
 // be written to it without decoding
 func (c *Client) Send(req *http.Request, v interface{}) error {
 	var (
@@ -105,14 +104,19 @@ func (c *Client) Send(req *http.Request, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) error {
+		return Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		errResp := &ErrorResponse{Response: resp}
-		data, err = ioutil.ReadAll(resp.Body)
+		data, err = io.ReadAll(resp.Body)
 
 		if err == nil && len(data) > 0 {
-			json.Unmarshal(data, errResp)
+			err := json.Unmarshal(data, errResp)
+			if err != nil {
+				return err
+			}
 		}
 
 		return errResp
@@ -122,8 +126,8 @@ func (c *Client) Send(req *http.Request, v interface{}) error {
 	}
 
 	if w, ok := v.(io.Writer); ok {
-		io.Copy(w, resp.Body)
-		return nil
+		_, err := io.Copy(w, resp.Body)
+		return err
 	}
 
 	return json.NewDecoder(resp.Body).Decode(v)
@@ -134,7 +138,8 @@ func (c *Client) Send(req *http.Request, v interface{}) error {
 // making the main request
 // client.Token will be updated when changed
 func (c *Client) SendWithAuth(req *http.Request, v interface{}) error {
-	c.Lock()
+	// c.Lock()
+	c.mu.Lock()
 	// Note: Here we do not want to `defer c.Unlock()` because we need `c.Send(...)`
 	// to happen outside of the locked section.
 
@@ -142,17 +147,18 @@ func (c *Client) SendWithAuth(req *http.Request, v interface{}) error {
 		if !c.tokenExpiresAt.IsZero() && c.tokenExpiresAt.Sub(time.Now()) < RequestNewTokenBeforeExpiresIn {
 			// c.Token will be updated in GetAccessToken call
 			if _, err := c.GetAccessToken(req.Context()); err != nil {
-				c.Unlock()
+				// c.Unlock()
+				c.mu.Unlock()
 				return err
 			}
 		}
 
 		req.Header.Set("Authorization", "Bearer "+c.Token.Token)
 	}
-
 	// Unlock the client mutex before sending the request, this allows multiple requests
 	// to be in progress at the same time.
-	c.Unlock()
+	// c.Unlock()
+	c.mu.Unlock()
 	return c.Send(req, v)
 }
 
