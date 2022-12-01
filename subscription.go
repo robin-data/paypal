@@ -18,6 +18,7 @@ type (
 		AutoRenewal        bool                `json:"auto_renewal,omitempty"`
 		ApplicationContext *ApplicationContext `json:"application_context,omitempty"`
 		CustomID           string              `json:"custom_id,omitempty"`
+		Plan               *PlanOverride       `json:"plan,omitempty"`
 	}
 
 	SubscriptionDetails struct {
@@ -68,10 +69,38 @@ type (
 		SharedListResponse
 	}
 
-	CaptureReqeust struct {
+	CaptureRequest struct {
 		Note        string      `json:"note"`
 		CaptureType CaptureType `json:"capture_type"`
 		Amount      Money       `json:"amount"`
+	}
+
+	// https://developer.paypal.com/docs/api/subscriptions/v1/#definition-plan_override
+	PlanOverride struct {
+		BillingCycles      []BillingCycleOverride       `json:"billing_cycles,omitempty"`
+		PaymentPreferences *PaymentPreferencesOverride `json:"payment_preferences,omitempty"`
+		Taxes              *TaxesOverride              `json:"taxes,omitempty"`
+	}
+
+	// https://developer.paypal.com/docs/api/subscriptions/v1/#definition-payment_preferences_override
+	PaymentPreferencesOverride struct {
+		AutoBillOutstanding     bool                  `json:"auto_bill_outstanding,omitempty"`
+		SetupFee                Money                 `json:"setup_fee,omitempty"`
+		SetupFeeFailureAction   SetupFeeFailureAction `json:"setup_fee_failure_action,omitempty"`
+		PaymentFailureThreshold int                   `json:"payment_failure_threshold,omitempty"`
+	}
+
+	// https://developer.paypal.com/docs/api/subscriptions/v1/#definition-payment_preferences_override
+	TaxesOverride struct {
+		Percentage string `json:"percentage,omitempty"`
+		Inclusive  *bool  `json:"inclusive,omitempty"`
+	}
+
+	// https://developer.paypal.com/docs/api/subscriptions/v1/#definition-billing_cycle_override
+	BillingCycleOverride struct {
+		PricingScheme PricingScheme `json:"pricing_scheme,omitempty"`
+		Sequence      *int          `json:"sequence,omitempty"`
+		TotalCycles   *int          `json:"total_cycles,omitempty"`
 	}
 )
 
@@ -151,7 +180,7 @@ func (c *Client) CancelSubscription(ctx context.Context, subscriptionId, cancelR
 // Captures an authorized payment from the subscriber on the subscription.
 // Doc: https://developer.paypal.com/docs/api/subscriptions/v1/#subscriptions_capture
 // Endpoint: POST /v1/billing/subscriptions/{id}/capture
-func (c *Client) CaptureSubscription(ctx context.Context, subscriptionId string, request CaptureReqeust) (*SubscriptionCaptureResponse, error) {
+func (c *Client) CaptureSubscription(ctx context.Context, subscriptionId string, request CaptureRequest) (*SubscriptionCaptureResponse, error) {
 	req, err := c.NewRequest(ctx, http.MethodPost, fmt.Sprintf("%s/v1/billing/subscriptions/%s/capture", c.APIBase, subscriptionId), request)
 	response := &SubscriptionCaptureResponse{}
 	if err != nil {

@@ -192,15 +192,280 @@ type (
 	}
 
 	// ApplicationContext struct
-	//Doc: https://developer.paypal.com/docs/api/subscriptions/v1/#definition-application_context
+	//Doc: https://developer.paypal.com/docs/api/orders/v2/#definition-application_context
 	ApplicationContext struct {
 		BrandName          string             `json:"brand_name,omitempty"`
 		Locale             string             `json:"locale,omitempty"`
 		ShippingPreference ShippingPreference `json:"shipping_preference,omitempty"`
 		UserAction         UserAction         `json:"user_action,omitempty"`
-		//LandingPage        string `json:"landing_page,omitempty"` // not found in documentation
-		ReturnURL string `json:"return_url,omitempty"`
-		CancelURL string `json:"cancel_url,omitempty"`
+		PaymentMethod      PaymentMethod      `json:"payment_method,omitempty"`
+		LandingPage        string             `json:"landing_page,omitempty"`
+		ReturnURL          string             `json:"return_url,omitempty"`
+		CancelURL          string             `json:"cancel_url,omitempty"`
+	}
+
+	// Invoicing relates structures
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#invoices_generate-next-invoice-number
+	InvoiceNumber struct {
+		InvoiceNumberValue string `json:"invoice_number"`
+	}
+
+	// used in InvoiceAmountWithBreakdown
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-custom_amount
+	CustomAmount struct {
+		Label  string `json:"label"`
+		Amount Money  `json:"amount,omitempty"`
+	}
+	// Used in AggregatedDiscount
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-discount
+	InvoicingDiscount struct {
+		DiscountAmount Money  `json:"amount,omitempty"`
+		Percent        string `json:"percent,omitempty"`
+	}
+	// Used in InvoiceAmountWithBreakdown
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-aggregated_discount
+	AggregatedDiscount struct {
+		InvoiceDiscount InvoicingDiscount `json:"invoice_discount,omitempty"`
+		ItemDiscount    *Money            `json:"item_discount,omitempty"`
+	}
+
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-tax
+	InvoiceTax struct {
+		Name    string `json:"name,omitempty"`
+		Percent string `json:"percent,omitempty"`
+		ID      string `json:"id,omitempty"` //  not mentioned here, but is still returned in response payload, when invoice is requested by ID.
+		Amount  Money  `json:"amount,omitempty"`
+	}
+	// Used in InvoiceAmountWithBreakdown struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-shipping_cost
+	InvoiceShippingCost struct {
+		Amount Money      `json:"amount,omitempty"`
+		Tax    InvoiceTax `json:"tax,omitempty"`
+	}
+
+	// Used in AmountSummaryDetail
+	// Doc: https://developer.paypal.com/docs/api/payments/v2/#definition-nrp-nrr_attributes
+	InvoiceAmountWithBreakdown struct {
+		Custom    CustomAmount        `json:"custom,omitempty"` // The custom amount to apply to an invoice.
+		Discount  AggregatedDiscount  `json:"discount,omitempty"`
+		ItemTotal Money               `json:"item_total,omitempty"` // The subtotal for all items.
+		Shipping  InvoiceShippingCost `json:"shipping,omitempty"`   // The shipping fee for all items. Includes tax on shipping.
+		TaxTotal  Money               `json:"tax_total,omitempty"`
+	}
+
+	// Invoice AmountSummary
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-amount_summary_detail
+	AmountSummaryDetail struct {
+		Breakdown InvoiceAmountWithBreakdown `json:"breakdown,omitempty"`
+		Currency  string                     `json:"currency_code,omitempty"`
+		Value     string                     `json:"value,omitempty"`
+	}
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-partial_payment
+	InvoicePartialPayment struct {
+		AllowPartialPayment bool  `json:"allow_partial_payment,omitempty"`
+		MinimumAmountDue    Money `json:"minimum_amount_due,omitempty"` // Valid only when allow_partial_payment is true.
+	}
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-configuration
+	InvoiceConfiguration struct {
+		AllowTip                   bool                  `json:"allow_tip,omitempty"`
+		PartialPayment             InvoicePartialPayment `json:"partial_payment,omitempty"`
+		TaxCalculatedAfterDiscount bool                  `json:"tax_calculated_after_discount,omitempty"`
+		TaxInclusive               bool                  `json:"tax_inclusive,omitempty"`
+		TemplateId                 string                `json:"template_id,omitempty"`
+	}
+	// used in InvoiceDetail structure
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-file_reference
+	InvoiceFileReference struct {
+		ContentType string `json:"content_type,omitempty"`
+		CreateTime  string `json:"create_time,omitempty"`
+		ID          string `json:"id,omitempty"`
+		URL         string `json:"reference_url,omitempty"`
+		Size        string `json:"size,omitempty"`
+	}
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-metadata
+	InvoiceAuditMetadata struct {
+		CreateTime       string `json:"create_time,omitempty"`
+		CreatedBy        string `json:"created_by,omitempty"`
+		LastUpdateTime   string `json:"last_update_time,omitempty"`
+		LastUpdatedBy    string `json:"last_updated_by,omitempty"`
+		CancelTime       string `json:"cancel_time,omitempty"`
+		CancellledTimeBy string `json:"cancelled_by,omitempty"`
+		CreatedByFlow    string `json:"created_by_flow,omitempty"`
+		FirstSentTime    string `json:"first_sent_time,omitempty"`
+		InvoicerViewUrl  string `json:"invoicer_view_url,omitempty"`
+		LastSentBy       string `json:"last_sent_by,omitempty"`
+		LastSentTime     string `json:"last_sent_time,omitempty"`
+		RecipientViewUrl string `json:"recipient_view_url,omitempty"`
+	}
+	// used in InvoiceDetail struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-invoice_payment_term
+	InvoicePaymentTerm struct {
+		TermType string `json:"term_type,omitempty"`
+		DueDate  string `json:"due_date,omitempty"`
+	}
+
+	// used in Invoice struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-invoice_detail
+	InvoiceDetail struct {
+		CurrencyCode       string                 `json:"currency_code"` // required, hence omitempty not used
+		Attachments        []InvoiceFileReference `json:"attachments,omitempty"`
+		Memo               string                 `json:"memo,omitempty"`
+		Note               string                 `json:"note,omitempty"`
+		Reference          string                 `json:"reference,omitempty"`
+		TermsAndConditions string                 `json:"terms_and_conditions,omitempty"`
+		InvoiceDate        string                 `json:"invoice_date,omitempty"`
+		InvoiceNumber      string                 `json:"invoice_number,omitempty"`
+		Metadata           InvoiceAuditMetadata   `json:"metadata,omitempty"`     // The audit metadata.
+		PaymentTerm        InvoicePaymentTerm     `json:"payment_term,omitempty"` // payment due date for the invoice. Value is either but not both term_type or due_date.
+	}
+
+	// used in InvoicerInfo struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-phone_detail
+	InvoicerPhoneDetail struct {
+		CountryCode     string `json:"country_code"`
+		NationalNumber  string `json:"national_number"`
+		ExtensionNumber string `json:"extension_number,omitempty"`
+		PhoneType       string `json:"phone_type,omitempty"`
+	}
+
+	// used in Invoice struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-invoicer_info
+	InvoicerInfo struct {
+		AdditionalNotes string                `json:"additional_notes,omitempty"`
+		EmailAddress    string                `json:"email_address,omitempty"`
+		LogoUrl         string                `json:"logo_url,omitempty"`
+		Phones          []InvoicerPhoneDetail `json:"phones,omitempty"`
+		TaxId           string                `json:"tax_id,omitempty"`
+		Website         string                `json:"website,omitempty"`
+	}
+	// Used in Invoice struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-item
+	InvoiceItem struct {
+		Name            string            `json:"name"`
+		Quantity        string            `json:"quantity"`
+		UnitAmount      Money             `json:"unit_amount"`
+		Description     string            `json:"description,omitempty"`
+		InvoiceDiscount InvoicingDiscount `json:"discount,omitempty"`
+		ID              string            `json:"id,omitempty"`
+		ItemDate        string            `json:"item_date,omitempty"`
+		Tax             InvoiceTax        `json:"tax,omitempty"`
+		UnitOfMeasure   string            `json:"unit_of_measure,omitempty"`
+	}
+
+	// used in InvoiceAddressPortable
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-address_details
+	InvoiceAddressDetails struct {
+		BuildingName    string `json:"building_name,omitempty"`
+		DeliveryService string `json:"delivery_service,omitempty"`
+		StreetName      string `json:"street_name,omitempty"`
+		StreetNumber    string `json:"street_number,omitempty"`
+		StreetType      string `json:"street_type,omitempty"`
+		SubBuilding     string `json:"sub_building,omitempty"`
+	}
+
+	// used in InvoiceContactInfo
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-address_portable
+	InvoiceAddressPortable struct {
+		CountryCode    string                `json:"country_code"`
+		AddressDetails InvoiceAddressDetails `json:"address_details,omitempty"`
+		AddressLine1   string                `json:"address_line_1,omitempty"`
+		AddressLine2   string                `json:"address_line_2,omitempty"`
+		AddressLine3   string                `json:"address_line_3,omitempty"`
+		AdminArea1     string                `json:"admin_area_1,omitempty"`
+		AdminArea2     string                `json:"admin_area_2,omitempty"`
+		AdminArea3     string                `json:"admin_area_3,omitempty"`
+		AdminArea4     string                `json:"admin_area_4,omitempty"`
+		PostalCode     string                `json:"postal_code,omitempty"`
+	}
+
+	// used in InvoicePaymentDetails
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-contact_information
+	InvoiceContactInfo struct {
+		BusinessName     string                 `json:"business_name,omitempty"`
+		RecipientAddress InvoiceAddressPortable `json:"address,omitempty"` // address of the recipient.
+		RecipientName    Name                   `json:"name,omitempty"`    // The first and Last name of the recipient.
+	}
+	//used in InvoicePayments struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-payment_detail
+	InvoicePaymentDetails struct {
+		Method       string             `json:"method"`
+		Amount       Money              `json:"amount,omitempty"`
+		Note         string             `json:"note,omitempty"`
+		PaymentDate  string             `json:"payment_date,omitempty"`
+		PaymentID    string             `json:"payment_id,omitempty"`
+		ShippingInfo InvoiceContactInfo `json:"shipping_info,omitempty"` // The recipient's shipping information.
+		Type         string             `json:"type,omitempty"`
+	}
+
+	// used in Invoice
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-payments
+	InvoicePayments struct {
+		PaidAmount   Money                   `json:"paid_amount,omitempty"`
+		Transactions []InvoicePaymentDetails `json:"transactions,omitempty"`
+	}
+
+	// used in InvoiceRecipientInfo
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-billing_info
+	InvoiceBillingInfo struct {
+		AdditionalInfo string                `json:"additional_info,omitempty"`
+		EmailAddress   string                `json:"email_address,omitempty"`
+		Language       string                `json:"language,omitempty"`
+		Phones         []InvoicerPhoneDetail `json:"phones,omitempty"` // invoice recipient's phone numbers.
+	}
+	// used in Invoice struct
+	// Doc:
+	InvoiceRecipientInfo struct {
+		BillingInfo  InvoiceBillingInfo `json:"billing_info,omitempty"`  // billing information for the invoice recipient.
+		ShippingInfo InvoiceContactInfo `json:"shipping_info,omitempty"` // recipient's shipping information.
+	}
+
+	// used in InvoiceRefund struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-refund_detail
+	InvoiceRefundDetails struct {
+		Method       string `json:"method"`
+		RefundAmount Money  `json:"amount,omitempty"`
+		RefundDate   string `json:"refund_date,omitempty"`
+		RefundID     string `json:"refund_id,omitempty"`
+		RefundType   string `json:"type,omitempty"`
+	}
+
+	// used in Invoice struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-refunds
+	InvoiceRefund struct {
+		RefundAmount  Money                  `json:"refund_amount,omitempty"`
+		RefundDetails []InvoiceRefundDetails `json:"transactions,omitempty"`
+	}
+
+	// used in Invoice struct
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#definition-email_address
+	InvoiceEmailAddress struct {
+		EmailAddress string `json:"email_address,omitempty"`
+	}
+
+	// to contain Invoice related fields
+	// Doc: https://developer.paypal.com/docs/api/invoicing/v2/#invoices_get
+	Invoice struct {
+		AdditionalRecipients []InvoiceEmailAddress  `json:"additional_recipients,omitempty"` // An array of one or more CC: emails to which notifications are sent.
+		AmountSummary        AmountSummaryDetail    `json:"amount,omitempty"`
+		Configuration        InvoiceConfiguration   `json:"configuration,omitempty"`
+		Detail               InvoiceDetail          `json:"detail,omitempty"`
+		DueAmount            Money                  `json:"due_amount,omitempty"` // balance amount outstanding after payments.
+		Gratuity             Money                  `json:"gratuity,omitempty"`   // amount paid by the payer as gratuity to the invoicer.
+		ID                   string                 `json:"id,omitempty"`
+		Invoicer             InvoicerInfo           `json:"invoicer,omitempty"`
+		Items                []InvoiceItem          `json:"items,omitempty"`
+		Links                []Link                 `json:"links,omitempty"`
+		ParentID             string                 `json:"parent_id,omitempty"`
+		Payments             InvoicePayments        `json:"payments,omitempty"`
+		PrimaryRecipients    []InvoiceRecipientInfo `json:"primary_recipients,omitempty"`
+		Refunds              InvoiceRefund          `json:"refunds,omitempty"` // List of refunds against this invoice.
+		Status               string                 `json:"status,omitempty"`
+	}
+
+	// Doc: https://developer.paypal.com/api/orders/v2/#definition-payment_method
+	PaymentMethod struct {
+		PayeePreferred         PayeePreferred         `json:"payee_preferred,omitempty"`
+		StandardEntryClassCode StandardEntryClassCode `json:"standard_entry_class_code,omitempty"`
 	}
 
 	// Authorization struct
@@ -299,6 +564,11 @@ type (
 		PaymentSource *PaymentSource `json:"payment_source"`
 	}
 
+	// CaptureOrderMockResponse - https://developer.paypal.com/docs/api-basics/sandbox/request-headers/#test-api-error-handling-routines
+	CaptureOrderMockResponse struct {
+		MockApplicationCodes string `json:"mock_application_codes"`
+	}
+
 	// RefundOrderRequest - https://developer.paypal.com/docs/api/payments/v2/#captures_refund
 	RefundCaptureRequest struct {
 		Amount      *Money `json:"amount,omitempty"`
@@ -326,6 +596,31 @@ type (
 		Payer                       Payer                `json:"payer,omitempty"`
 		ShippingAddress             *ShippingAddress     `json:"shipping_address,omitempty"`
 		OverrideMerchantPreferences *MerchantPreferences `json:"override_merchant_preferences,omitempty"`
+	}
+
+	// BillingAgreementFromToken struct
+	BillingAgreementFromToken struct {
+		ID          string      `json:"id,omitempty"`
+		Description string      `json:"description,omitempty"`
+		Payer       *Payer      `json:"payer,omitempty"`
+		Plan        BillingPlan `json:"plan,omitempty"`
+		Links       []Link      `json:"links,omitempty"`
+	}
+
+	// BillingAgreementToken response struct
+	BillingAgreementToken struct {
+		Links   []Link `json:"links,omitempty"`
+		TokenID string `json:"token_id,omitempty"`
+	}
+
+	// Plan struct
+	Plan struct {
+		ID                 string              `json:"id"`
+		Name               string              `json:"name"`
+		Description        string              `json:"description"`
+		CreateTime         string              `json:"create_time,omitempty"`
+		UpdateTime         string              `json:"update_time,omitempty"`
+		PaymentDefinitions []PaymentDefinition `json:"payment_definitions,omitempty"`
 	}
 
 	// BillingInfo struct
@@ -368,7 +663,8 @@ type (
 
 	// Client represents a Paypal REST API Client
 	Client struct {
-		sync.Mutex
+		// sync.Mutex
+		mu                   sync.Mutex
 		Client               *http.Client
 		ClientID             string
 		Secret               string
@@ -458,9 +754,12 @@ type (
 
 	// ErrorResponseDetail struct
 	ErrorResponseDetail struct {
-		Field string `json:"field"`
-		Issue string `json:"issue"`
-		Links []Link `json:"link"`
+		Field       string `json:"field"`
+		Issue       string `json:"issue"`
+		Name        string `json:"name"`
+		Message     string `json:"message"`
+		Description string `json:"description"`
+		Links       []Link `json:"link"`
 	}
 
 	// ErrorResponse https://developer.paypal.com/docs/api/errors/
@@ -557,8 +856,16 @@ type (
 	PurchaseUnit struct {
 		ReferenceID        string              `json:"reference_id"`
 		Amount             *PurchaseUnitAmount `json:"amount,omitempty"`
+		Payee              *PayeeForOrders     `json:"payee,omitempty"`
 		Payments           *CapturedPayments   `json:"payments,omitempty"`
 		PaymentInstruction *PaymentInstruction `json:"payment_instruction,omitempty"`
+		Description        string              `json:"description,omitempty"`
+		CustomID           string              `json:"custom_id,omitempty"`
+		InvoiceID          string              `json:"invoice_id,omitempty"`
+		ID                 string              `json:"id,omitempty"`
+		SoftDescriptor     string              `json:"soft_descriptor,omitempty"`
+		Shipping           *ShippingDetail     `json:"shipping,omitempty"`
+		Items              []Item              `json:"items,omitempty"`
 	}
 
 	// TaxInfo used for orders.
@@ -653,6 +960,7 @@ type (
 
 	// CaptureAmount struct
 	CaptureAmount struct {
+		Status                    string                     `json:"status,omitempty"`
 		ID                        string                     `json:"id,omitempty"`
 		CustomID                  string                     `json:"custom_id,omitempty"`
 		Amount                    *PurchaseUnitAmount        `json:"amount,omitempty"`
@@ -687,11 +995,13 @@ type (
 
 	// PayerWithNameAndPhone struct
 	PayerWithNameAndPhone struct {
-		Name         *CreateOrderPayerName `json:"name,omitempty"`
-		EmailAddress string                `json:"email_address,omitempty"`
-		Phone        *PhoneWithType        `json:"phone,omitempty"`
-		PayerID      string                `json:"payer_id,omitempty"`
-		Address      Address               `json:"address,omitempty"`
+		Name         *CreateOrderPayerName          `json:"name,omitempty"`
+		EmailAddress string                         `json:"email_address,omitempty"`
+		Phone        *PhoneWithType                 `json:"phone,omitempty"`
+		PayerID      string                         `json:"payer_id,omitempty"`
+		BirthDate    string                         `json:"birth_date,omitempty"`
+		TaxInfo      *TaxInfo                       `json:"tax_info,omitempty"`
+		Address      *ShippingDetailAddressPortable `json:"address,omitempty"`
 	}
 
 	// CaptureOrderResponse is the response for capture order
@@ -767,8 +1077,8 @@ type (
 
 	// PaymentSource structure
 	PaymentSource struct {
-		Card  *PaymentSourceCard  `json:"card"`
-		Token *PaymentSourceToken `json:"token"`
+		Card  *PaymentSourceCard  `json:"card,omitempty"`
+		Token *PaymentSourceToken `json:"token,omitempty"`
 	}
 
 	// PaymentSourceCard structure
@@ -850,6 +1160,7 @@ type (
 		CaptureID     string     `json:"capture_id,omitempty"`
 		ParentPayment string     `json:"parent_payment,omitempty"`
 		UpdateTime    *time.Time `json:"update_time,omitempty"`
+		SaleID        string     `json:"sale_id,omitempty"`
 	}
 
 	// RefundResponse .
@@ -857,6 +1168,7 @@ type (
 		ID     string              `json:"id,omitempty"`
 		Amount *PurchaseUnitAmount `json:"amount,omitempty"`
 		Status string              `json:"status,omitempty"`
+		Links  []Link              `json:"links,omitempty"`
 	}
 
 	// Related struct
@@ -941,6 +1253,7 @@ type (
 
 	// Subscriber struct
 	Subscriber struct {
+		PayerID         string               `json:"payer_id"`
 		ShippingAddress ShippingDetail       `json:"shipping_address,omitempty"`
 		Name            CreateOrderPayerName `json:"name,omitempty"`
 		EmailAddress    string               `json:"email_address,omitempty"`
@@ -1147,6 +1460,10 @@ type (
 		Operations            []Operation            `json:"operations,omitempty"`
 		Products              []string               `json:"products,omitempty"`
 		LegalConsents         []Consent              `json:"legal_consents,omitempty"`
+	}
+
+	ReferralResponse struct {
+		Links []Link `json:"links,omitempty"`
 	}
 
 	PartnerConfigOverride struct {

@@ -48,8 +48,9 @@ const (
 type UserAction string
 
 const (
-	UserActionContinue UserAction = "CONTINUE"
-	UserActionPayNow   UserAction = "PAY_NOW"
+	UserActionContinue     UserAction = "CONTINUE"
+	UserActionPayNow       UserAction = "PAY_NOW"
+	UserActionSubscribeNow UserAction = "SUBSCRIBE_NOW"
 )
 
 type SubscriptionStatus string
@@ -100,4 +101,18 @@ const (
 	ProductCategorySoftwareOnlineServices                    ProductCategory = "ONLINE_SERVICES"
 	ProductCategorySoftwareOther                             ProductCategory = "OTHER"
 	ProductCategorySoftwareServices                          ProductCategory = "SERVICES"
+)
+
+type PayeePreferred string // Doc: https://developer.paypal.com/api/orders/v2/#definition-payment_method
+const (
+	PayeePreferredUnrestricted 						PayeePreferred = "UNRESTRICTED"
+	PayeePreferredImmediatePaymentRequired 					PayeePreferred = "IMMEDIATE_PAYMENT_REQUIRED"
+)
+
+type StandardEntryClassCode string // Doc: https://developer.paypal.com/api/orders/v2/#definition-payment_method
+const (
+	StandardEntryClassCodeTel					StandardEntryClassCode="TEL"
+	StandardEntryClassCodeWeb					StandardEntryClassCode="WEB"
+	StandardEntryClassCodeCcd					StandardEntryClassCode="CCD"
+	StandardEntryClassCodePpd					StandardEntryClassCode="PPD"
 )
